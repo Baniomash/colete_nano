@@ -4,7 +4,7 @@
 #include <avr/interrupt.h>
 
 
-// MPU accelSensor;
+MPU accelSensor;
 
 void wait(unsigned long);
 void getData();
@@ -16,13 +16,22 @@ short int zAxis = 0;
 
 short int data[5];
 
-uint8_t timer = 0;
+int timer = 0;
 boolean filesToSave = false;
 
-void setup() {
-  // accelSensor.initialize();
-  // accelSensor.disableTemperature();
-  // accelSensor.disableGyroscope();
+ISR(TIMER1_COMPA_vect){
+  if(timer >= 3){
+    timer = 1;
+  } else{
+    timer++;
+  }
+  Serial.println(timer);
+}
+
+int main() {
+  accelSensor.initialize();
+  accelSensor.disableTemperature();
+  accelSensor.disableGyroscope();
 
   OCR1A = 15624; //timer to interrupt = ~1sec
   
@@ -33,33 +42,18 @@ void setup() {
   sei();
 
   Serial.begin(9600);
+
+  while(1)
+	{
+    if(!filesToSave && timer == 3){
+    accelSensor.readAccelerometer(&xAxis, &yAxis, &zAxis);
+      getData();
+    } else if(filesToSave && timer < 3){
+      saveData();
+    }
+	}
 }
 
-void loop() {
-    // accelSensor.readAccelerometer(&xAxis, &yAxis, &zAxis);
-  if(timer == 3){
-    // Serial.println("");
-    // Serial.print(" X = ");
-    // Serial.print(xAxis);
-    // Serial.print(" | Y = ");
-    // Serial.print(yAxis);
-    // Serial.print(" | Z = ");
-    // Serial.println(zAxis);
-    getData();
-  } else if(filesToSave && timer < 3){
-    saveData();
-  }
-  
-  wait(5000);
-}
-
-ISR(TIMER1_CAPT_vect){
-  if(timer >= 3){
-    timer = 0;
-  } else{
-    timer++;
-  }
-}
 
 void wait(unsigned long milliseconds)
 {
@@ -77,6 +71,12 @@ void getData(){
   data[0] = xAxis;
   data[1] = yAxis;
   data[2] = zAxis;
+  Serial.print("X ");
+  Serial.println(data[0]);
+  Serial.print("Y ");
+  Serial.println(data[1]);
+  Serial.print("Z ");
+  Serial.println(data[2]);
   filesToSave = !filesToSave;
 }
 
