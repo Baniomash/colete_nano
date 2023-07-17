@@ -2,9 +2,12 @@
 #include <MPU.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
-
+#include <TinyGPS++.h>
+#include <SoftwareSerial.h>
 
 MPU accelSensor;
+TinyGPSPlus gps;
+SoftwareSerial softSerial(RXPin, TXPin);
 
 void wait(unsigned long);
 void getData();
@@ -13,8 +16,12 @@ void saveData();
 short int xAxis = 0;
 short int yAxis = 0;
 short int zAxis = 0;
+short int lat = 0;
+short int lng = 0;
 
 short int data[5];
+
+static const int RXPin = 4, TXPin = 3;
 
 int timer = 0;
 boolean filesToSave = false;
@@ -42,14 +49,31 @@ int main() {
   sei();
 
   Serial.begin(9600);
+  softSerial.begin(9600);
 
   while(1)
 	{
-    if(!filesToSave && timer == 3){
-    accelSensor.readAccelerometer(&xAxis, &yAxis, &zAxis);
-      getData();
-    } else if(filesToSave && timer < 3){
-      saveData();
+    if(softSerial.available()> 0){
+      
+      if (millis() > 5000 && gps.charsProcessed() < 10){
+        Serial.println(F("No GPS detected: check wiring."));
+        while (true);      
+      }
+
+      if(!filesToSave && timer == 3){
+        accelSensor.readAccelerometer(&xAxis, &yAxis, &zAxis);
+        if (gps.encode(softSerial.read())){
+          lat = gps.location.lat();
+          lng = gps.location.lng();
+        }
+        getData();
+      } else if(filesToSave && timer < 3){
+        saveData();
+      }
+
+    }else{
+      Serial.println("Software Serial not working");
+      while (true);
     }
 	}
 }
@@ -71,6 +95,8 @@ void getData(){
   data[0] = xAxis;
   data[1] = yAxis;
   data[2] = zAxis;
+  data[3] = lat;
+  data[4] = lng;
   Serial.print("X ");
   Serial.println(data[0]);
   Serial.print("Y ");
