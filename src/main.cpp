@@ -7,7 +7,6 @@
 
 MPU accelSensor;
 TinyGPSPlus gps;
-SoftwareSerial softSerial(RXPin, TXPin);
 
 void wait(unsigned long);
 void getData();
@@ -16,12 +15,12 @@ void saveData();
 short int xAxis = 0;
 short int yAxis = 0;
 short int zAxis = 0;
-short int lat = 0;
-short int lng = 0;
+double lat = 0;
+double lng = 0;
 
-short int data[5];
+// short int data[5];
 
-static const int RXPin = 4, TXPin = 3;
+SoftwareSerial softSerial(4, 3); // Software Serial pins (RXPin, TXPin)
 
 int timer = 0;
 boolean filesToSave = false;
@@ -56,7 +55,7 @@ int main() {
     if(softSerial.available()> 0){
       
       if (millis() > 5000 && gps.charsProcessed() < 10){
-        Serial.println(F("No GPS detected: check wiring."));
+        Serial.println("No GPS detected: check wiring.");
         while (true);      
       }
 
@@ -79,30 +78,29 @@ int main() {
 }
 
 
-void wait(unsigned long milliseconds)
-{
-  unsigned long currentTime = millis();
-  unsigned long previousTime = millis();
+// void wait(unsigned long milliseconds)
+// {
+//   unsigned long currentTime = millis();
+//   unsigned long previousTime = millis();
 
-  while (currentTime - previousTime <= milliseconds)
-  {
-    currentTime = millis();
-  }
-}
+//   while (currentTime - previousTime <= milliseconds)
+//   {
+//     currentTime = millis();
+//   }
+// }
 
 void getData(){
   Serial.println("Getting data from sensors!");
-  data[0] = xAxis;
-  data[1] = yAxis;
-  data[2] = zAxis;
-  data[3] = lat;
-  data[4] = lng;
   Serial.print("X ");
-  Serial.println(data[0]);
+  Serial.println(xAxis);
   Serial.print("Y ");
-  Serial.println(data[1]);
+  Serial.println(yAxis);
   Serial.print("Z ");
-  Serial.println(data[2]);
+  Serial.println(zAxis);
+  Serial.print("Latitude ");
+  Serial.println(lat);
+  Serial.print("Longitude ");
+  Serial.println(lng);
   filesToSave = !filesToSave;
 }
 
