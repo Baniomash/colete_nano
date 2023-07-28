@@ -1,10 +1,10 @@
-// #include <MPU.h>
+#include <MPU.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <TinyGPS++.h>
 #include <SoftwareSerial.h>
 
-// MPU accelSensor;
+MPU accelSensor;
 TinyGPSPlus gps;
 
 void wait(unsigned long);
@@ -14,10 +14,10 @@ void saveData();
 short int xAxis = 0;
 short int yAxis = 0;
 short int zAxis = 0;
-double lat = 0;
-double lng = 0;
+float lat = 0;
+float lng = 0;
 
-SoftwareSerial softSerial(4, 3);  // Software Serial pins (RXPin, TXPin)
+SoftwareSerial softSerial(3, 4);  // Software Serial pins (RXPin, TXPin)
 
 int timer = 0;
 boolean filesToSave = false;
@@ -53,16 +53,18 @@ int main() {
       while (true)
         ;
     }
+    while (softSerial.available() > 0){
+      gps.encode(softSerial.read());
+      if (gps.location.isUpdated()){
+        lat = gps.location.lat();
+        lng = gps.location.lng();
+      }
+    }
 
     if (!filesToSave && timer == 3) {
       // accelSensor.readAccelerometer(&xAxis, &yAxis, &zAxis);
       Serial.println("");
-      Serial.print("Dados GPS:");
       Serial.println(softSerial.read());
-      if (gps.encode(softSerial.read())) {
-        lat = gps.location.lat();
-        lng = gps.location.lng();
-      }
       getData();
     } else if (filesToSave && timer < 3) {
       saveData();
@@ -91,9 +93,9 @@ void getData() {
   Serial.print("Z ");
   Serial.println(zAxis);
   Serial.print("Latitude ");
-  Serial.println(lat);
+  Serial.println(lat, 6);
   Serial.print("Longitude ");
-  Serial.println(lng);
+  Serial.println(lng, 6);
   filesToSave = !filesToSave;
 }
 
