@@ -1,21 +1,20 @@
-#include <MPU.h>
+// #include <MPU.h>
+#include <Wire.h>
+
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <TinyGPS++.h>
 #include <SoftwareSerial.h>
 
-MPU accelSensor;
+// MPU accelSensor;
 TinyGPSPlus gps;
 
 void wait(unsigned long);
 void getData();
 void saveData();
 
-short int xAxis = 0;
-short int yAxis = 0;
-short int zAxis = 0;
-float lat = 0;
-float lng = 0;
+int16_t xAxis = 0, yAxis = 0, zAxis = 0;
+float lat = 0, lng = 0;
 
 SoftwareSerial softSerial(3, 4);  // Software Serial pins (RXPin, TXPin)
 
@@ -44,6 +43,12 @@ int main() {
 
   sei();
 
+  Wire.begin();
+  Wire.beginTransmission(0x68);
+  Wire.write(0x6B);
+  Wire.write(0);
+  Wire.endTransmission(true);
+
   Serial.begin(9600);
   softSerial.begin(9600);
 
@@ -55,16 +60,21 @@ int main() {
     }
     while (softSerial.available() > 0){
       gps.encode(softSerial.read());
+    }
+    Wire.beginTransmission(0x68);
+    Wire.write(0x3B);
+    Wire.endTransmission(false);
+    Wire.requestFrom(0x68, 6, true);
+
+
+    if (!filesToSave && timer == 3) {
       if (gps.location.isUpdated()){
         lat = gps.location.lat();
         lng = gps.location.lng();
       }
-    }
-
-    if (!filesToSave && timer == 3) {
-      // accelSensor.readAccelerometer(&xAxis, &yAxis, &zAxis);
-      Serial.println("");
-      Serial.println(softSerial.read());
+      xAxis = Wire.read() << 8 | Wire.read();
+      yAxis = Wire.read() << 8 | Wire.read();
+      zAxis = Wire.read() << 8 | Wire.read();
       getData();
     } else if (filesToSave && timer < 3) {
       saveData();
