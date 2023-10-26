@@ -25,21 +25,23 @@ SoftwareSerial ss(RXPin, TXPin);
 
 // The Adafruit_MPU6050 object
 Adafruit_MPU6050 mpu;
+sensors_event_t a, g, temp;
 
 // MicroSD file
 File dataFile;
 
 void setup() {
 	Serial.begin(115200);
-  while (!Serial)
-    delay(10); // will pause Zero, Leonardo, etc until serial console opens
+  while (!Serial){
+    Serial.println("Serial problema"); //###
+	delay(10);} // will pause Zero, Leonardo, etc until serial console opens
 	// Starts Software Serial with GPS Baud Rate
   ss.begin(GPSBaud);
   // Initialize the microSD card
-  if (!SD.begin(chipSelect)) {
-    Serial.println("MicroSD initialization failed. Check your connections or card.");
-    return;
-  }
+//   if (!SD.begin(chipSelect)) {
+//     Serial.println("MicroSD initialization failed. Check your connections or card.");
+//     return;
+//   }
   // Grants MPU is working properly
   if (!mpu.begin()) {
     Serial.println("Failed to find MPU6050 chip");
@@ -90,16 +92,10 @@ void setup() {
     Serial.println("5 Hz");
     break;
   }
-
-  Serial.println("MPU6050 Found!");
-	Serial.println(F("FullExample.ino"));
-	Serial.println(F("An extensive example of many interesting TinyGPSPlus features"));
-	Serial.print(F("Testing TinyGPSPlus library v. ")); Serial.println(TinyGPSPlus::libraryVersion());
-	Serial.println(F("by Mikal Hart"));
 	Serial.println();
-	Serial.println(F("Sats HDOP  Latitude   Longitude   Fix  Date       Time     Date Alt    Speed Checksum    Acceleration  Temperature"));
-	Serial.println(F("           (deg)      (deg)       Age                      Age  (m)    (GPS) Fail       X     Y      Z     C°"));
-	Serial.println(F("------------------------------------------------------------------------------------------------------------------"));
+	Serial.println(F("Sats Latitude   Longitude   Fix  Date       Time     Date Speed  Acceleration"));
+	Serial.println(F("     (deg)      (deg)       Age                      Age  (GPS)  X     Y      Z"));
+	Serial.println(F("------------------------------------------------------------------------------------------------"));
 }
 
 // This custom version of delay() ensures that the gps object
@@ -117,19 +113,19 @@ static void printFloat(float val, bool valid, short int len, short int prec) {
 	if (!valid) {
 		while (len-- > 1) {
 			Serial.print('*');
-			dataFile.print('*');
+			// dataFile.print('*');
 		}
 		Serial.print(' ');
-		dataFile.print(' ');
+		// dataFile.print(' ');
 	} else {
 		Serial.print(val, prec);
-		dataFile.print(val, prec);
+		// dataFile.print(val, prec);
 		int vi = abs((int)val);
 		int flen = prec + (val < 0.0 ? 2 : 1); // . and -
 		flen += vi >= 1000 ? 4 : vi >= 100 ? 3 : vi >= 10 ? 2 : 1;
 		for (int i=flen; i<len; ++i) {
 			Serial.print(' ');
-			dataFile.print(' ');
+			// dataFile.print(' ');
 		}
 	}
 	smartDelay(0);
@@ -148,29 +144,29 @@ static void printInt(unsigned long val, bool valid, short int len) {
 		sz[len-1] = ' ';
 	}
 	Serial.print(sz);
-	dataFile.print(sz);
+	// dataFile.print(sz);
 	smartDelay(0);
 }
 
 static void printDateTime(TinyGPSDate &d, TinyGPSTime &t) {
 	if (!d.isValid()) {
 		Serial.print(F("********** "));
-		dataFile.print(F("********** "));
+		// dataFile.print(F("********** "));
 	} else {
 		char sz[32];
 		sprintf(sz, "%02d/%02d/%02d ", d.month(), d.day(), d.year());
 		Serial.print(sz);
-		dataFile.print(sz);
+		// dataFile.print(sz);
 	}
 
 	if (!t.isValid()) {
 		Serial.print(F("******** "));
-		dataFile.print(F("******** "));
+		// dataFile.print(F("******** "));
 	} else {
 		char sz[32];
 		sprintf(sz, "%02d:%02d:%02d ", t.hour(), t.minute(), t.second());
 		Serial.print(sz);
-		dataFile.print(sz);
+		// dataFile.print(sz);
 	}
 
 	printInt(d.age(), d.isValid(), 5);
@@ -188,29 +184,29 @@ static void printDateTime(TinyGPSDate &d, TinyGPSTime &t) {
 
 void loop() {
   	/* Get new sensor events with the readings */
-  	sensors_event_t a, g, temp;
-	  mpu.getEvent(&a, &g, &temp);
+	mpu.getEvent(&a, &g, &temp);
+
+	Serial.println("iniciou MPU"); //###
 
 	// Create a new file
-  	dataFile = SD.open("trainingVestData.txt", FILE_WRITE);
+  	// dataFile = SD.open("trainingVestData.txt", FILE_WRITE);
+
+	// Serial.println("iniciou o arquivo"); //###
 
 	printInt(gps.satellites.value(), gps.satellites.isValid(), 5);
-	printFloat(gps.hdop.hdop(), gps.hdop.isValid(), 6, 1);
 	printFloat(gps.location.lat(), gps.location.isValid(), 11, 6);
 	printFloat(gps.location.lng(), gps.location.isValid(), 12, 6);
 	printInt(gps.location.age(), gps.location.isValid(), 5);
 	printDateTime(gps.date, gps.time);
-	printFloat(gps.altitude.meters(), gps.altitude.isValid(), 7, 2);
 	printFloat(gps.speed.kmph(), gps.speed.isValid(), 6, 2);
 	printInt(gps.failedChecksum(), true, 9);
   printFloat(a.acceleration.x, true, 6, 2);
   printFloat(a.acceleration.y, true, 6, 2);
   printFloat(a.acceleration.x, true, 6, 2);
-  printFloat(temp.temperature, true, 6, 2);
 	Serial.println();
-	dataFile.println();
+	// dataFile.println();
 	smartDelay(1000);
-	dataFile.close();
+	// dataFile.close();
 	smartDelay(2000);
 
 	if (millis() > 5000 && gps.charsProcessed() < 10) {
