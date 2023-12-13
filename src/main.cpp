@@ -28,7 +28,7 @@ Adafruit_MPU6050 mpu;
 sensors_event_t a, g, temp;
 
 // MicroSD file
-File dataFile;
+// File dataFile;
 
 void setup() {
 	Serial.begin(115200);
@@ -93,9 +93,9 @@ void setup() {
     break;
   }
 	Serial.println();
-	Serial.println(F("Sats Latitude   Longitude   Fix  Date       Time     Date Speed  Acceleration"));
-	Serial.println(F("     (deg)      (deg)       Age                      Age  (GPS)  X     Y      Z"));
-	Serial.println(F("------------------------------------------------------------------------------------------------"));
+	Serial.println(F("  Latitude   Longitude     Hour    Acceleration"));
+	Serial.println(F("    (deg)      (deg)                 X     Y      Z"));
+	Serial.println(F("-----------------------------------------------------"));
 }
 
 // This custom version of delay() ensures that the gps object
@@ -131,34 +131,24 @@ static void printFloat(float val, bool valid, short int len, short int prec) {
 	smartDelay(0);
 }
 
-static void printInt(unsigned long val, bool valid, short int len) {
-	char sz[32] = "*****************";
-	if (valid) {
-		sprintf(sz, "%ld", val);
-	}
-	sz[len] = 0;
-	for (int i=strlen(sz); i<len; ++i) {
-		sz[i] = ' ';
-	}
-	if (len > 0) {
-		sz[len-1] = ' ';
-	}
-	Serial.print(sz);
-	// dataFile.print(sz);
-	smartDelay(0);
-}
+// static void printInt(unsigned long val, bool valid, short int len) {
+// 	char sz[32] = "*****************";
+// 	if (valid) {
+// 		sprintf(sz, "%ld", val);
+// 	}
+// 	sz[len] = 0;
+// 	for (int i=strlen(sz); i<len; ++i) {
+// 		sz[i] = ' ';
+// 	}
+// 	if (len > 0) {
+// 		sz[len-1] = ' ';
+// 	}
+// 	Serial.print(sz);
+// 	// dataFile.print(sz);
+// 	smartDelay(0);
+// }
 
-static void printDateTime(TinyGPSDate &d, TinyGPSTime &t) {
-	if (!d.isValid()) {
-		Serial.print(F("********** "));
-		// dataFile.print(F("********** "));
-	} else {
-		char sz[32];
-		sprintf(sz, "%02d/%02d/%02d ", d.month(), d.day(), d.year());
-		Serial.print(sz);
-		// dataFile.print(sz);
-	}
-
+static void printTime(TinyGPSTime &t) {
 	if (!t.isValid()) {
 		Serial.print(F("******** "));
 		// dataFile.print(F("******** "));
@@ -168,8 +158,6 @@ static void printDateTime(TinyGPSDate &d, TinyGPSTime &t) {
 		Serial.print(sz);
 		// dataFile.print(sz);
 	}
-
-	printInt(d.age(), d.isValid(), 5);
 	smartDelay(0);
 }
 
@@ -185,24 +173,21 @@ static void printDateTime(TinyGPSDate &d, TinyGPSTime &t) {
 void loop() {
   	/* Get new sensor events with the readings */
 	mpu.getEvent(&a, &g, &temp);
-
-	Serial.println("iniciou MPU"); //###
+	int16_t accelX, accelY, accelZ;
 
 	// Create a new file
   	// dataFile = SD.open("trainingVestData.txt", FILE_WRITE);
 
-	// Serial.println("iniciou o arquivo"); //###
-
-	printInt(gps.satellites.value(), gps.satellites.isValid(), 5);
+	// printInt(gps.satellites.value(), gps.satellites.isValid(), 5);
 	printFloat(gps.location.lat(), gps.location.isValid(), 11, 6);
 	printFloat(gps.location.lng(), gps.location.isValid(), 12, 6);
-	printInt(gps.location.age(), gps.location.isValid(), 5);
-	printDateTime(gps.date, gps.time);
-	printFloat(gps.speed.kmph(), gps.speed.isValid(), 6, 2);
-	printInt(gps.failedChecksum(), true, 9);
-  printFloat(a.acceleration.x, true, 6, 2);
-  printFloat(a.acceleration.y, true, 6, 2);
-  printFloat(a.acceleration.x, true, 6, 2);
+	// printInt(gps.location.age(), gps.location.isValid(), 5);
+	printTime(gps.time);
+	// printFloat(gps.speed.kmph(), gps.speed.isValid(), 6, 2);
+	// printInt(gps.failedChecksum(), true, 9);
+  printFloat(a.acceleration.x, true, 6, 4);
+  printFloat(a.acceleration.y, true, 6, 4);
+  printFloat(a.acceleration.z, true, 6, 4);
 	Serial.println();
 	// dataFile.println();
 	smartDelay(1000);
