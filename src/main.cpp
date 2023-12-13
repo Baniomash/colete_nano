@@ -1,7 +1,5 @@
 #include <TinyGPS++.h>
 #include <SoftwareSerial.h>
-#include <Adafruit_MPU6050.h>
-#include <Adafruit_Sensor.h>
 #include <Wire.h>
 #include <SPI.h>
 #include <SD.h>
@@ -23,75 +21,33 @@ TinyGPSPlus gps;
 // The serial connection to the GPS device
 SoftwareSerial ss(RXPin, TXPin);
 
-// The Adafruit_MPU6050 object
-Adafruit_MPU6050 mpu;
-sensors_event_t a, g, temp;
+// The Adafruit_MPU6050 address
+#define MPU6050_ADDR 0x68
+int16_t accel_x, accel_y, accel_z;
 
 // MicroSD file
 // File dataFile;
 
 void setup() {
 	Serial.begin(115200);
-  while (!Serial){
-    Serial.println("Serial problema"); //###
-	delay(10);} // will pause Zero, Leonardo, etc until serial console opens
+ 	while (!Serial){
+		Serial.println("Serial problema"); //###
+		delay(10);
+	} // will pause Zero, Leonardo, etc until serial console opens
 	// Starts Software Serial with GPS Baud Rate
-  ss.begin(GPSBaud);
-  // Initialize the microSD card
-//   if (!SD.begin(chipSelect)) {
-//     Serial.println("MicroSD initialization failed. Check your connections or card.");
-//     return;
-//   }
-  // Grants MPU is working properly
-  if (!mpu.begin()) {
-    Serial.println("Failed to find MPU6050 chip");
-    while (1) {
-      delay(10);
-    }
-  }
-  // MPU configs for acceleration, rotation and temperature
-  mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
-  Serial.print("Accelerometer range set to: ");
-  switch (mpu.getAccelerometerRange()) {
-  case MPU6050_RANGE_2_G:
-    Serial.println("+-2G");
-    break;
-  case MPU6050_RANGE_4_G:
-    Serial.println("+-4G");
-    break;
-  case MPU6050_RANGE_8_G:
-    Serial.println("+-8G");
-    break;
-  case MPU6050_RANGE_16_G:
-    Serial.println("+-16G");
-    break;
-  }
-
-  mpu.setFilterBandwidth(MPU6050_BAND_5_HZ);
-  Serial.print("Filter bandwidth set to: ");
-  switch (mpu.getFilterBandwidth()) {
-  case MPU6050_BAND_260_HZ:
-    Serial.println("260 Hz");
-    break;
-  case MPU6050_BAND_184_HZ:
-    Serial.println("184 Hz");
-    break;
-  case MPU6050_BAND_94_HZ:
-    Serial.println("94 Hz");
-    break;
-  case MPU6050_BAND_44_HZ:
-    Serial.println("44 Hz");
-    break;
-  case MPU6050_BAND_21_HZ:
-    Serial.println("21 Hz");
-    break;
-  case MPU6050_BAND_10_HZ:
-    Serial.println("10 Hz");
-    break;
-  case MPU6050_BAND_5_HZ:
-    Serial.println("5 Hz");
-    break;
-  }
+  	ss.begin(GPSBaud);
+	// Initialize the microSD card
+	//   if (!SD.begin(chipSelect)) {
+	//     Serial.println("MicroSD initialization failed. Check your connections or card.");
+	//     return;
+	//   }
+	// Begin MPU transmittion
+	Wire.begin();
+	Wire.beginTransmission(MPU6050_ADDR);
+  	Wire.write(0x6B);
+  	Wire.write(0);
+  	Wire.endTransmission(true);
+  
 	Serial.println();
 	Serial.println(F("  Latitude   Longitude     Hour    Acceleration"));
 	Serial.println(F("    (deg)      (deg)                 X     Y      Z"));
@@ -131,22 +87,22 @@ static void printFloat(float val, bool valid, short int len, short int prec) {
 	smartDelay(0);
 }
 
-// static void printInt(unsigned long val, bool valid, short int len) {
-// 	char sz[32] = "*****************";
-// 	if (valid) {
-// 		sprintf(sz, "%ld", val);
-// 	}
-// 	sz[len] = 0;
-// 	for (int i=strlen(sz); i<len; ++i) {
-// 		sz[i] = ' ';
-// 	}
-// 	if (len > 0) {
-// 		sz[len-1] = ' ';
-// 	}
-// 	Serial.print(sz);
-// 	// dataFile.print(sz);
-// 	smartDelay(0);
-// }
+static void printInt(unsigned long val, bool valid, short int len) {
+	char sz[32] = "*****************";
+	if (valid) {
+		sprintf(sz, "%ld", val);
+	}
+	sz[len] = 0;
+	for (int i=strlen(sz); i<len; ++i) {
+		sz[i] = ' ';
+	}
+	if (len > 0) {
+		sz[len-1] = ' ';
+	}
+	Serial.print(sz);
+	// dataFile.print(sz);
+	smartDelay(0);
+}
 
 static void printTime(TinyGPSTime &t) {
 	if (!t.isValid()) {
@@ -172,8 +128,14 @@ static void printTime(TinyGPSTime &t) {
 
 void loop() {
   	/* Get new sensor events with the readings */
-	mpu.getEvent(&a, &g, &temp);
-	int16_t accelX, accelY, accelZ;
+	Wire.beginTransmission(MPU6050_ADDR);
+  	Wire.write(0x3B);
+  	Wire.endTransmission(false);
+  	Wire.requestFrom(MPU6050_ADDR, 14, true);
+	
+	accel_x = (Wire.read() << 8 | Wire.read());
+  	accel_y = (Wire.read() << 8 | Wire.read());
+  	accel_z = (Wire.read() << 8 | Wire.read());
 
 	// Create a new file
   	// dataFile = SD.open("trainingVestData.txt", FILE_WRITE);
@@ -185,9 +147,9 @@ void loop() {
 	printTime(gps.time);
 	// printFloat(gps.speed.kmph(), gps.speed.isValid(), 6, 2);
 	// printInt(gps.failedChecksum(), true, 9);
-  printFloat(a.acceleration.x, true, 6, 4);
-  printFloat(a.acceleration.y, true, 6, 4);
-  printFloat(a.acceleration.z, true, 6, 4);
+ 	printInt(accel_x, true, 10);
+  	printInt(accel_y, true, 10);
+  	printInt(accel_z, true, 10);
 	Serial.println();
 	// dataFile.println();
 	smartDelay(1000);
